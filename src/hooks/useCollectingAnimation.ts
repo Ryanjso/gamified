@@ -45,6 +45,7 @@ const DEFAULT_OPTIONS = {
 interface ActiveAnimation {
   element: HTMLElement;
   mountedRoot: ReturnType<typeof createRoot> | null;
+  animationFrameId?: number; // Store animation frame ID
   cleanup: () => void;
 }
 
@@ -58,6 +59,9 @@ export const useCollectingAnimation = (options: CollectingAnimationOptions) => {
 
   // Keep track of all active animations
   const activeAnimationsRef = useRef<ActiveAnimation[]>([]);
+
+  // Keep track of all timeout IDs
+  const timeoutIdsRef = useRef<number[]>([]);
 
   // Reference to the animation container
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -79,8 +83,17 @@ export const useCollectingAnimation = (options: CollectingAnimationOptions) => {
   // Cleanup function to remove any lingering elements when component unmounts
   useEffect(() => {
     return () => {
+      // Clear all timeouts
+      timeoutIdsRef.current.forEach((timeoutId) => {
+        clearTimeout(timeoutId);
+      });
+      timeoutIdsRef.current = [];
+
       // Clean up all active animations
       activeAnimationsRef.current.forEach((animation) => {
+        if (animation.animationFrameId) {
+          cancelAnimationFrame(animation.animationFrameId);
+        }
         animation.cleanup();
       });
       activeAnimationsRef.current = [];
@@ -206,9 +219,14 @@ export const useCollectingAnimation = (options: CollectingAnimationOptions) => {
       for (let i = 0; i < elementsInThisBatch; i++) {
         // Random delay for a more natural effect
         const delay = batch * batchDelay + getRandomNumber(0, 200);
-        setTimeout(() => {
+        const timeoutId = window.setTimeout(() => {
           createFloatingElement(elements, animationId, onReached);
+          // Remove this timeout ID from the tracking array once it's executed
+          timeoutIdsRef.current = timeoutIdsRef.current.filter((id) => id !== timeoutId);
         }, delay);
+
+        // Track the timeout ID
+        timeoutIdsRef.current.push(timeoutId);
       }
     }
   };
@@ -263,6 +281,29 @@ export const useCollectingAnimation = (options: CollectingAnimationOptions) => {
     let actualWidth = elementSize;
     let actualHeight = elementSize;
 
+    // Create the active animation object with a placeholder for animationFrameId
+    const activeAnimation: ActiveAnimation = {
+      element: elementContainer,
+      mountedRoot: null,
+      cleanup: () => {
+        if (mountedRoot) {
+          mountedRoot.unmount();
+        }
+        if (elementContainer.parentNode) {
+          elementContainer.parentNode.removeChild(elementContainer);
+        }
+        // Cancel animation frame if it exists
+        if (activeAnimation.animationFrameId) {
+          cancelAnimationFrame(activeAnimation.animationFrameId);
+        }
+        // Remove from active animations
+        activeAnimationsRef.current = activeAnimationsRef.current.filter((a) => a.element !== elementContainer);
+      },
+    };
+
+    // Add to active animations
+    activeAnimationsRef.current.push(activeAnimation);
+
     // If the random element is a string or number, render it as text/html.
     // Otherwise, assume it's a JSX element and render it using React.
     if (typeof randomElement === 'string' || typeof randomElement === 'number') {
@@ -295,7 +336,10 @@ export const useCollectingAnimation = (options: CollectingAnimationOptions) => {
       measureRoot.render(randomElement);
 
       // Wait a tick for the element to render
-      setTimeout(() => {
+      const timeoutId = window.setTimeout(() => {
+        // Remove this timeout ID from the tracking array
+        timeoutIdsRef.current = timeoutIdsRef.current.filter((id) => id !== timeoutId);
+
         // Measure the rendered element
         const { width, height } = measureElementSize(measureContainer);
 
@@ -313,6 +357,7 @@ export const useCollectingAnimation = (options: CollectingAnimationOptions) => {
         const root = createRoot(elementContainer);
         root.render(randomElement);
         mountedRoot = root;
+        activeAnimation.mountedRoot = root;
 
         // Set the measured dimensions on the container
         elementContainer.style.width = `${actualWidth}px`;
@@ -321,6 +366,9 @@ export const useCollectingAnimation = (options: CollectingAnimationOptions) => {
         // Continue with animation setup now that we have the correct size
         setupAnimation(actualWidth, actualHeight);
       }, 0);
+
+      // Track the timeout ID
+      timeoutIdsRef.current.push(timeoutId);
     }
 
     // Setup the animation with the correct element size
@@ -334,6 +382,8 @@ export const useCollectingAnimation = (options: CollectingAnimationOptions) => {
       // Random ending position with a slight offset from center
       const endXOffset = getRandomNumber(endOffsetRange[0], endOffsetRange[1]);
       const endYOffset = getRandomNumber(endOffsetRange[0], endOffsetRange[1]);
+      const endX = targetRect.left + targetRect.width / 2 + endXOffset;
+      const endY = targetRect.top + targetRect.height / 2 + endYOffset;
 
       // Position the element at the start position
       elementContainer.style.left = `${startX - width / 2}px`;
@@ -354,28 +404,6 @@ export const useCollectingAnimation = (options: CollectingAnimationOptions) => {
       // Track if this element has triggered the "reaching" state
       let hasTriggeredReaching = false;
 
-      // Create cleanup function
-      const cleanup = () => {
-        if (mountedRoot) {
-          mountedRoot.unmount();
-        }
-        if (elementContainer.parentNode) {
-          elementContainer.parentNode.removeChild(elementContainer);
-        }
-
-        // Remove from active animations
-        activeAnimationsRef.current = activeAnimationsRef.current.filter((a) => a.element !== elementContainer);
-      };
-
-      // Add to active animations
-      const activeAnimation: ActiveAnimation = {
-        element: elementContainer,
-        mountedRoot,
-        cleanup,
-      };
-
-      activeAnimationsRef.current.push(activeAnimation);
-
       // Animation function using requestAnimationFrame
       const animateElement = () => {
         const startTime = performance.now();
@@ -386,7 +414,7 @@ export const useCollectingAnimation = (options: CollectingAnimationOptions) => {
 
           // If the instance no longer exists, clean up and exit
           if (!instance) {
-            cleanup();
+            activeAnimation.cleanup();
             return;
           }
 
@@ -449,10 +477,11 @@ export const useCollectingAnimation = (options: CollectingAnimationOptions) => {
               updateAnimationState();
             }
 
-            requestAnimationFrame(animate);
+            // Store the animation frame ID so we can cancel it if needed
+            activeAnimation.animationFrameId = requestAnimationFrame(animate);
           } else {
             // Animation complete, clean up
-            cleanup();
+            activeAnimation.cleanup();
 
             // Update the instance's completed count
             if (instance) {
@@ -475,7 +504,9 @@ export const useCollectingAnimation = (options: CollectingAnimationOptions) => {
             }
           }
         };
-        requestAnimationFrame(animate);
+
+        // Start the animation and store the ID
+        activeAnimation.animationFrameId = requestAnimationFrame(animate);
       };
 
       animateElement();
