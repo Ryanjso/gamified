@@ -4,6 +4,12 @@ Gamified is a toolkit for web developers looking to add engaging gamification an
 
 ---
 
+## Live Demo
+
+[https://gamified-example.vercel.app/](https://gamified-example.vercel.app/)
+
+---
+
 ## Features
 
 - **Collecting Animation Hook:** Animate items (e.g., coins, tokens) moving from a source element to a target element with customizable physics and timing.

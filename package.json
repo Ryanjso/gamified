@@ -4,6 +4,11 @@
   "main": "dist/index.cjs",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "homepage": "https://gamified-example.vercel.app/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ryanjso/gamified"
+  },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
@@ -31,7 +36,6 @@
     "react": ">=17.0.0",
     "react-dom": ">=17.0.0"
   },
-  "homepage": "https://gamified-example.vercel.app/",
   "devDependencies": {
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
