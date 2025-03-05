@@ -1,6 +1,6 @@
 'use client';
 
-import { useCollectingAnimation } from '../../node_modules/gamified/dist/index';
+import { useCollectingAnimation } from 'gamified';
 import { useEffect, useRef, useState } from 'react';
 import { CountUp } from 'use-count-up';
 
