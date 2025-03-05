@@ -6,6 +6,10 @@ Gamified is a toolkit for web developers looking to add engaging gamification an
 
 ## Live Demo
 
+<video src="https://raw.githubusercontent.com/Ryanjso/gamified/main/examples/example-app/public/example.mp4" controls width="600">
+  Your browser does not support the video tag.
+</video>
+
 [https://gamified-example.vercel.app/](https://gamified-example.vercel.app/)
 
 ---
