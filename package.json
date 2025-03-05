@@ -12,13 +12,24 @@
   "files": [
     "dist"
   ],
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
-  "dependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+  "exports": {
+    "import": "./dist/index.js",
+    "require": "./dist/index.cjs"
+  },
+  "keywords": [
+    "react",
+    "gamification",
+    "animation",
+    "slots",
+    "spinning wheel",
+    "coins"
+  ],
+  "author": "Ryan Soderberg",
+  "license": "MIT",
+  "description": "A React library for gamification elements like wheels, slots, and coin animations.",
+  "peerDependencies": {
+    "react": ">=17.0.0",
+    "react-dom": ">=17.0.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.10",
