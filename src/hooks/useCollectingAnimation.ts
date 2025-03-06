@@ -385,9 +385,11 @@ export const useCollectingAnimation = (options: CollectingAnimationOptions) => {
       const endX = targetRect.left + targetRect.width / 2 + endXOffset;
       const endY = targetRect.top + targetRect.height / 2 + endYOffset;
 
-      // Position the element at the start position
-      elementContainer.style.left = `${startX - width / 2}px`;
-      elementContainer.style.top = `${startY - height / 2}px`;
+      // Position the element at the start position (only set once)
+      elementContainer.style.left = `${startX}px`;
+      elementContainer.style.top = `${startY}px`;
+      // Use transform for all subsequent position changes
+      elementContainer.style.transform = `translate(${-width / 2}px, ${-height / 2}px)`;
 
       // Random animation duration
       const duration = getRandomNumber(durationRange[0], durationRange[1]);
@@ -455,9 +457,9 @@ export const useCollectingAnimation = (options: CollectingAnimationOptions) => {
             }
 
             // Apply position and scale
-            elementContainer.style.left = `${x - (width / 2) * scale}px`;
-            elementContainer.style.top = `${y - (height / 2) * scale}px`;
-            elementContainer.style.transform = `scale(${scale})`;
+            elementContainer.style.transform = `translate(${x - startX - (width / 2) * scale}px, ${
+              y - startY - (height / 2) * scale
+            }px) scale(${scale})`;
 
             // Check if element is reaching the target
             if (!hasTriggeredReaching && progress >= reachThreshold) {
